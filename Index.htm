@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Organiza tus Cosas por Hacer">
+    <meta name="author" content="Ninel">
+    <title>Organiza tus cosas por hacer</title>
+    <link rel="icon" type="image/x-icon" href="img/icon.png">
+    <link rel="stylesheet" href="styles.css">
+       
+</head>
+<body>
+
+<header>📋 To Do List — Organiza tus cosas por hacer</header>
+
+<div class="layout">
+
+   
+    <aside class="sidebar">
+        <h2>✦ New Task</h2>
+
+        <div class="campo">
+            <label for="descripcion">Descripción</label>
+            <input type="text" class="ent-dat" id="descripcion" placeholder="Escribe la tarea...">
+        </div>
+
+        <div class="campo">
+            <label for="fecha">Fecha</label>
+            <input type="date" class="ent-dat" id="fecha">
+        </div>
+
+        <button class="btn-primario" onclick="guardarNuevo()">Guardar tarea</button>
+    </aside>
+
+    <main class="main">
+        <h2>Estos son tus pendientes</h2>
+
+        <table id="tabla-tareas">
+            <thead>
+                <tr>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                    <th style="text-align:center;">Terminada</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla">
+                <tr>
+                    <td>Hacer práctica de progra</td>
+                    <td>25/03/2026</td>
+                    <td class="done-cell">
+                        <input type="checkbox" class="done-checkbox" onchange="actualizarEstado(this)">
+                        <span class="status-badge">Pendiente</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+
+</div>
+
+<script>
+   
+    window.addEventListener('DOMContentLoaded', () => {
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha').value = hoy;
+    });
+
+    function guardarNuevo() {
+        const desc = document.getElementById('descripcion').value.trim();
+        const fecha = document.getElementById('fecha').value;
+
+        if (!desc) {
+            alert('Por favor escribe una descripción para la tarea.');
+            return;
+        }
+
+        const [yyyy, mm, dd] = fecha.split('-');
+        const fechaFormateada = `${dd}/${mm}/${yyyy}`;
+
+        const tbody = document.getElementById('cuerpo-tabla');
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>${desc}</td>
+            <td>${fechaFormateada}</td>
+            <td class="done-cell">
+                <input type="checkbox" class="done-checkbox" onchange="actualizarEstado(this)">
+                <span class="status-badge">Pendiente</span>
+            </td>
+        `;
+        tbody.appendChild(fila);
+
+        document.getElementById('descripcion').value = '';
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha').value = hoy;
+    }
+
+    function actualizarEstado(checkbox) {
+        const badge = checkbox.nextElementSibling;
+        badge.textContent = checkbox.checked ? 'Terminada' : 'Pendiente';
+    }
+</script>
+
+</body>
+</html>
