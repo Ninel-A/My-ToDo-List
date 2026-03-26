@@ -6,9 +6,8 @@
     <meta name="description" content="Organiza tus Cosas por Hacer">
     <meta name="author" content="Ninel">
     <title>Organiza tus cosas por hacer</title>
-    <link rel="icon" type="image/x-icon" href="img/icon.png">
+    <link rel="icon" type="image/x-icon" href="imagen/iconfav.png">
     <link rel="stylesheet" href="styles.css">
-       
 </head>
 <body>
 
@@ -16,7 +15,6 @@
 
 <div class="layout">
 
-   
     <aside class="sidebar">
         <h2>✦ New Task</h2>
 
@@ -42,17 +40,11 @@
                     <th>Descripción</th>
                     <th>Fecha</th>
                     <th style="text-align:center;">Terminada</th>
+                    <th style="text-align:center;">Acciones</th>
                 </tr>
             </thead>
             <tbody id="cuerpo-tabla">
-                <tr>
-                    <td>Hacer práctica de progra</td>
-                    <td>25/03/2026</td>
-                    <td class="done-cell">
-                        <input type="checkbox" class="done-checkbox" onchange="actualizarEstado(this)">
-                        <span class="status-badge">Pendiente</span>
-                    </td>
-                </tr>
+                
             </tbody>
         </table>
     </main>
@@ -60,14 +52,112 @@
 </div>
 
 <script>
+    const STORAGE_KEY = "tareas";
+
+    
+    function cargarTareas() {
+        const datos = localStorage.getItem(STORAGE_KEY);
+        return datos ? JSON.parse(datos) : [];
+    }
+
+    
+    function guardarTareas(tareas) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tareas));
+    }
+
    
+    function renderizarTabla() {
+        const tbody = document.getElementById('cuerpo-tabla');
+        tbody.innerHTML = '';
+        cargarTareas().forEach((tarea, i) => agregarFila(tarea, i));
+    }
+
+   
+    function agregarFila(tarea, indice) {
+        const tbody = document.getElementById('cuerpo-tabla');
+        const fila = document.createElement('tr');
+        fila.dataset.indice = indice; 
+
+        fila.innerHTML = `
+            <td class="celda-desc">${tarea.descripcion}</td>
+            <td class="celda-fecha">${tarea.fecha}</td>
+            <td class="done-cell">
+                <input type="checkbox" class="done-checkbox"
+                    ${tarea.terminada ? 'checked' : ''}
+                    onchange="actualizarEstado(this, ${indice})">
+                <span class="status-badge">${tarea.terminada ? 'Terminada' : 'Pendiente'}</span>
+            </td>
+            <td class="acciones-cell">
+                <button class="btn-editar"   onclick="activarEdicion(this, ${indice})" title="Editar">✏️</button>
+                <button class="btn-eliminar" onclick="eliminarTarea(${indice})"        title="Eliminar">🗑️</button>
+            </td>
+        `;
+        tbody.appendChild(fila);
+    }
+
+   
+    function activarEdicion(boton, indice) {
+        const fila = boton.closest('tr');
+        const tareas = cargarTareas();
+        const tarea  = tareas[indice];
+
+        
+        const [dd, mm, yyyy] = tarea.fecha.split('/');
+        const fechaISO = `${yyyy}-${mm}-${dd}`;
+
+        fila.querySelector('.celda-desc').innerHTML =
+            `<input type="text"  class="input-inline" id="ie-desc-${indice}"  value="${tarea.descripcion}">`;
+
+        fila.querySelector('.celda-fecha').innerHTML =
+            `<input type="date" class="input-inline" id="ie-fecha-${indice}" value="${fechaISO}">`;
+
+        
+        fila.querySelector('.acciones-cell').innerHTML = `
+            <button class="btn-confirmar" onclick="confirmarEdicion(this, ${indice})" title="Confirmar">✅</button>
+            <button class="btn-cancelar-inline" onclick="renderizarTabla()"           title="Cancelar">✖️</button>
+        `;
+
+       
+        document.getElementById(`ie-desc-${indice}`).focus();
+    }
+
+    function confirmarEdicion(boton, indice) {
+        const desc  = document.getElementById(`ie-desc-${indice}`).value.trim();
+        const fecha = document.getElementById(`ie-fecha-${indice}`).value;
+
+        if (!desc) {
+            alert('La descripción no puede estar vacía.');
+            return;
+        }
+
+
+        const [yyyy, mm, dd] = fecha.split('-');
+        const fechaFormateada = `${dd}/${mm}/${yyyy}`;
+
+        const tareas = cargarTareas();
+        tareas[indice].descripcion = desc;
+        tareas[indice].fecha       = fechaFormateada;
+        guardarTareas(tareas);
+
+        renderizarTabla(); 
+    }
+
+    
+     function fechaHoy() {
+        const hoy = new Date();
+        const yyyy = hoy.getFullYear();
+        const mm   = String(hoy.getMonth() + 1).padStart(2, '0'); 
+        const dd   = String(hoy.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-        const hoy = new Date().toISOString().split('T')[0];
-        document.getElementById('fecha').value = hoy;
-    });
+    document.getElementById('fecha').value = fechaHoy();
+    renderizarTabla();
+});
 
     function guardarNuevo() {
-        const desc = document.getElementById('descripcion').value.trim();
+        const desc  = document.getElementById('descripcion').value.trim();
         const fecha = document.getElementById('fecha').value;
 
         if (!desc) {
@@ -76,28 +166,35 @@
         }
 
         const [yyyy, mm, dd] = fecha.split('-');
-        const fechaFormateada = `${dd}/${mm}/${yyyy}`;
 
-        const tbody = document.getElementById('cuerpo-tabla');
-        const fila = document.createElement('tr');
-        fila.innerHTML = `
-            <td>${desc}</td>
-            <td>${fechaFormateada}</td>
-            <td class="done-cell">
-                <input type="checkbox" class="done-checkbox" onchange="actualizarEstado(this)">
-                <span class="status-badge">Pendiente</span>
-            </td>
-        `;
-        tbody.appendChild(fila);
+        const nuevaTarea = {
+            descripcion: desc,
+            fecha: `${dd}/${mm}/${yyyy}`,
+            terminada: false
+        };
+
+        const tareas = cargarTareas();
+        tareas.push(nuevaTarea);
+        guardarTareas(tareas);
+        renderizarTabla();
 
         document.getElementById('descripcion').value = '';
-        const hoy = new Date().toISOString().split('T')[0];
-        document.getElementById('fecha').value = hoy;
+        document.getElementById('fecha').value = fechaHoy();
     }
 
-    function actualizarEstado(checkbox) {
-        const badge = checkbox.nextElementSibling;
-        badge.textContent = checkbox.checked ? 'Terminada' : 'Pendiente';
+    function actualizarEstado(checkbox, indice) {
+        checkbox.nextElementSibling.textContent = checkbox.checked ? 'Terminada' : 'Pendiente';
+        const tareas = cargarTareas();
+        tareas[indice].terminada = checkbox.checked;
+        guardarTareas(tareas);
+    }
+
+    function eliminarTarea(indice) {
+        
+        const tareas = cargarTareas();
+        tareas.splice(indice, 1);
+        guardarTareas(tareas);
+        renderizarTabla();
     }
 </script>
 
